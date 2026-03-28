@@ -40,6 +40,7 @@ model HabitLog {
   id        String   @id @default(cuid())
   date      DateTime
   completed Boolean  @default(false)
+  completedElements String[] @default([])
   createdAt DateTime @default(now())
   habitId   String
   habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)

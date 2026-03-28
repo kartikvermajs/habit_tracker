@@ -96,18 +96,46 @@ export async function toggleHabitLog(habitId: string, dateStr: string) {
   const date = new Date(dateStr)
   date.setHours(0, 0, 0, 0)
 
+  const habit = await prisma.habit.findUnique({
+    where: { id: habitId, userId },
+  })
+  if (!habit) throw new Error('Habit not found')
+
+  const totalParts = Math.max(1, habit.reminders.length)
+
   const existing = await prisma.habitLog.findUnique({
     where: { habitId_date: { habitId, date } },
   })
 
+  let newElements = existing ? [...existing.completedElements] : []
+
+  if (newElements.length < totalParts) {
+    // Increment: Add a dummy token
+    newElements.push(`done-${Date.now()}`)
+  } else {
+    // If fully completed (or somehow over), clicking again single-decrements (undo last)
+    newElements.pop()
+  }
+
+  const isCompleted = newElements.length >= totalParts
+
   if (existing) {
     await prisma.habitLog.update({
       where: { id: existing.id },
-      data: { completed: !existing.completed },
+      data: {
+        completed: isCompleted,
+        completedElements: newElements,
+      },
     })
   } else {
     await prisma.habitLog.create({
-      data: { habitId, userId, date, completed: true },
+      data: {
+        habitId,
+        userId,
+        date,
+        completed: isCompleted,
+        completedElements: newElements,
+      },
     })
   }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -16,13 +16,53 @@ import {
 import { toast } from 'sonner'
 import type { HabitFormDefaults } from '@/components/ui/habit-form'
 
+// NEW IMPORTS FOR SYSTEM
+import { motion } from 'framer-motion'
+import confetti from 'canvas-confetti'
+import gsap from 'gsap'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
-type HabitLog = { date: string | Date; completed: boolean; habitId: string }
+type HabitLog = { date: string | Date; completed: boolean; habitId: string; completedElements?: string[] }
 type HabitWithLogs = {
   id: string; title: string; description?: string | null
   color?: string | null; frequency: string[]
   reminders: string[]
   startDate: string | Date; endDate?: string | Date | null; logs: HabitLog[]
+}
+
+// ─── Audio Helpers ────────────────────────────────────────────────────────────
+function playPopSound() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(800, ctx.currentTime)
+    osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.1)
+    gain.gain.setValueAtTime(0.3, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1)
+    osc.start(ctx.currentTime)
+    osc.stop(ctx.currentTime + 0.1)
+  } catch(e) {}
+}
+
+function playSuccessGong() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.type = 'triangle'
+    osc.frequency.setValueAtTime(400, ctx.currentTime)
+    osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.5)
+    gain.gain.setValueAtTime(0.3, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5)
+    osc.start(ctx.currentTime)
+    osc.stop(ctx.currentTime + 0.5)
+  } catch(e) {}
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -57,10 +97,14 @@ function isHabitActiveOnDate(habit: HabitWithLogs, date: Date): boolean {
 }
 
 function isCompleted(habit: HabitWithLogs, selectedDate: Date): boolean {
-  return habit.logs.some(l => {
+  const log = habit.logs.find(l => {
     const logDate = new Date(l.date)
-    return logDate.toDateString() === selectedDate.toDateString() && l.completed
+    return logDate.toDateString() === selectedDate.toDateString()
   })
+  if (!log) return false
+  const totalParts = Math.max(1, habit.reminders.length)
+  const completedCount = log.completedElements ? log.completedElements.length : (log.completed ? totalParts : 0)
+  return completedCount >= totalParts
 }
 
 const GHOST_COLORS = ['#c4b5fd', '#93c5fd', '#fdba74', '#fbcfe8'] as const
@@ -68,6 +112,145 @@ const FREQ_LABEL = (f: string[]) =>
   f.includes('Everyday') ? 'Everyday' : f.join(', ')
 
 type Tab = 'today' | 'habits'
+
+// ─── Today Habit Card (Progressive Completion) ──────────────────────────────
+function TodayHabitCard({ habit, selectedDate, dateStr, toggleMutation }: { habit: HabitWithLogs, selectedDate: Date, dateStr: string, toggleMutation: any }) {
+  const cardRef = useRef<HTMLButtonElement>(null)
+  
+  const log = habit.logs.find(l => {
+    return new Date(l.date).toDateString() === selectedDate.toDateString()
+  })
+
+  // Support legacy boolean and new string array
+  const completedElements = log?.completedElements || []
+  const wasCompletedLegacy = log?.completed || false
+
+  const totalParts = Math.max(1, habit.reminders.length)
+  const completedCount = completedElements.length > 0 ? completedElements.length : (wasCompletedLegacy ? totalParts : 0)
+  
+  const progressPercent = Math.min(100, Math.max(0, (completedCount / totalParts) * 100))
+  const done = progressPercent >= 100
+
+  const accentHex = habit.color ?? '#8b5cf6'
+
+  const handleClick = (e: React.MouseEvent) => {
+    const nextCount = done ? completedCount - 1 : completedCount + 1
+    const hitting100 = nextCount >= totalParts && completedCount < totalParts
+    
+    // Play audio based on directional action
+    if (!done) {
+      if (hitting100) {
+        playSuccessGong()
+      } else {
+        playPopSound()
+      }
+    }
+
+    // Haptic interaction
+    if (navigator.vibrate) {
+      if (!done) {
+        navigator.vibrate(hitting100 ? [30, 50, 30] : [20])
+      } else {
+        navigator.vibrate([10])
+      }
+    }
+
+    // GSAP micro interaction (Scale pop)
+    if (cardRef.current) {
+      const tl = gsap.timeline()
+      tl.to(cardRef.current, { scale: 1.03, duration: 0.15, ease: "power2.out" })
+        .to(cardRef.current, { scale: 1, duration: 0.2, ease: "bounce.out" })
+    }
+
+    // Confetti Celebration
+    if (!done) {
+      const rect = e.currentTarget.getBoundingClientRect()
+      const x = (rect.left + rect.width / 2) / window.innerWidth
+      const y = (rect.top + rect.height / 2) / window.innerHeight
+      
+      if (hitting100) {
+        confetti({ 
+          particleCount: 120, spread: 100, origin: { x, y }, 
+          colors: [accentHex, '#ffffff', '#e2e8f0'],
+          zIndex: 100
+        })
+        toast.success(`Completed ${habit.title}! 🎉`)
+      } else {
+        confetti({ 
+          particleCount: 30, spread: 50, origin: { x: (rect.left + 30)/window.innerWidth, y },
+          colors: [accentHex, '#ffffff'],
+          zIndex: 100
+        })
+      }
+    }
+
+    // Fire actual backend mutation
+    toggleMutation.mutate({ habitId: habit.id, dateStr })
+  }
+
+  return (
+    <button
+      ref={cardRef}
+      onClick={handleClick}
+      className={`relative flex items-center p-4 h-[76px] rounded-2xl border-2 overflow-hidden bg-white shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] transition-all ${done ? 'opacity-90' : ''}`}
+      style={{ borderColor: accentHex + (done ? '99' : '40') }}
+    >
+      {/* Fluid wave fill layer */}
+      <motion.div
+        initial={{ height: 0 }}
+        animate={{ height: `${progressPercent}%` }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+        className="absolute bottom-0 left-0 right-0 z-0 origin-bottom flex items-start overflow-hidden hover:opacity-100"
+        style={{ backgroundColor: accentHex + '25' }}
+      >
+         {/* Wave motion simulating liquid */}
+         {progressPercent > 0 && progressPercent < 100 && (
+           <motion.div 
+             animate={{ x: ['0%', '-50%'] }}
+             transition={{ repeat: Infinity, ease: 'linear', duration: 3 }}
+             className="absolute -top-3 left-0 w-[200%] h-6 opacity-30 pointer-events-none"
+             style={{
+               background: `radial-gradient(circle at 10px 10px, ${accentHex}90 10px, transparent 10px)`,
+               backgroundSize: '20px 20px',
+               filter: 'blur(2px)'
+             }}
+           />
+         )}
+      </motion.div>
+
+      {/* Glow on complete */}
+      {done && (
+         <div className="absolute inset-0 z-0 pointer-events-none transition-opacity" style={{ boxShadow: `inset 0 0 20px ${accentHex}30` }} />
+      )}
+
+      {/* Content Layer (z-10) */}
+      <div className="relative z-10 flex items-center w-full">
+        {/* Checkbox Representation */}
+        <div
+          className={`w-8 h-8 rounded-full border-2 shrink-0 ml-1 flex items-center justify-center transition-all ${done ? 'border-transparent' : 'border-slate-200 bg-white'}`}
+          style={done ? { backgroundColor: accentHex } : {}}
+        >
+          {done ? (
+            <Check className="w-4 h-4 text-white" strokeWidth={3} />
+          ) : (
+             <span className="text-[11px] font-bold tabular-nums tracking-tighter" style={{ color: accentHex }}>
+               {completedCount}/{totalParts}
+             </span>
+          )}
+        </div>
+        <div className="flex flex-col gap-1 ml-4 flex-1 items-start">
+          <span className={`text-sm font-bold ${done ? 'text-slate-500 line-through' : 'text-slate-800'} transition-all`}>
+            {habit.title}
+          </span>
+          {habit.description && (
+            <span className="text-xs text-slate-400 leading-tight line-clamp-1">{habit.description}</span>
+          )}
+        </div>
+        <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" strokeWidth={2.5} />
+      </div>
+    </button>
+  )
+}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
@@ -95,7 +278,6 @@ export default function DashboardPage() {
 
   // ── Notification system: in-app toast + scheduled push ────────────────────
   useEffect(() => {
-    // Register the in-app toast callback so foreground reminders appear as toasts
     setInAppToastCallback((title, body) => {
       toast(title, { description: body, duration: 8000 })
     })
@@ -123,11 +305,24 @@ export default function DashboardPage() {
         old?.map(h => {
           if (h.id !== habitId) return h
           const date = new Date(dateStr); date.setHours(0, 0, 0, 0)
+          
+          const totalParts = Math.max(1, h.reminders.length)
           const existing = h.logs.find(l =>
             new Date(l.date).toDateString() === date.toDateString()
           )
-          if (existing) return { ...h, logs: h.logs.map(l => l === existing ? { ...l, completed: !l.completed } : l) }
-          return { ...h, logs: [...h.logs, { date: dateStr, completed: true, habitId }] }
+          
+          if (existing) {
+             const existArr = existing.completedElements || []
+             const existCount = existArr.length > 0 ? existArr.length : (existing.completed ? totalParts : 0)
+             let newElements = new Array(existCount).fill('x')
+             if (newElements.length < totalParts) {
+                newElements.push('x')
+             } else {
+                newElements.pop()
+             }
+             return { ...h, logs: h.logs.map(l => l === existing ? { ...l, completed: newElements.length >= totalParts, completedElements: newElements } : l) }
+          }
+          return { ...h, logs: [...h.logs, { date: dateStr, completed: 1 >= totalParts, completedElements: ['x'], habitId }] }
         })
       )
       return { prev }
@@ -237,34 +432,15 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {!isLoading && activeHabits.map((habit: HabitWithLogs) => {
-              const done = isCompleted(habit, selectedDate)
-              const accentHex = habit.color ?? '#8b5cf6'
-              return (
-                <button
-                  key={habit.id}
-                  onClick={() => toggleMutation.mutate({ habitId: habit.id, dateStr })}
-                  className={`flex items-center p-4 h-[76px] rounded-2xl border-2 border-dashed bg-white shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] transition-all active:scale-[0.98] ${done ? 'opacity-70' : ''}`}
-                  style={{ borderColor: accentHex + '80' }}
-                >
-                  <div
-                    className={`w-8 h-8 rounded-full border-2 shrink-0 ml-1 flex items-center justify-center transition-all ${done ? 'border-transparent' : 'border-slate-200'}`}
-                    style={done ? { backgroundColor: accentHex } : {}}
-                  >
-                    {done && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
-                  </div>
-                  <div className="flex flex-col gap-1 ml-4 flex-1 items-start">
-                    <span className={`text-sm font-bold ${done ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
-                      {habit.title}
-                    </span>
-                    {habit.description && (
-                      <span className="text-xs text-slate-400 leading-tight line-clamp-1">{habit.description}</span>
-                    )}
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" strokeWidth={2.5} />
-                </button>
-              )
-            })}
+            {!isLoading && activeHabits.map((habit: HabitWithLogs) => (
+               <TodayHabitCard 
+                 key={habit.id}
+                 habit={habit}
+                 selectedDate={selectedDate}
+                 dateStr={dateStr}
+                 toggleMutation={toggleMutation}
+               />
+            ))}
 
             {/* Ghost placeholders */}
             {!isLoading && habits.length === 0 && GHOST_COLORS.map((color, i) => {
@@ -381,7 +557,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── Bottom Nav ──────────────────────────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 px-4 pb-6 pt-4 bg-gradient-to-t from-white via-white to-transparent pointer-events-none">
+      <div className="fixed bottom-0 left-0 right-0 px-4 pb-6 pt-4 bg-gradient-to-t from-white via-white to-transparent pointer-events-none z-50">
         <div className="bg-white rounded-[2rem] shadow-[0_-4px_24px_rgba(0,0,0,0.06),0_8px_16px_rgba(0,0,0,0.04)] h-20 flex justify-between items-center px-8 relative pointer-events-auto mx-auto max-w-[420px]">
           {/* Habits Tab */}
           <button
