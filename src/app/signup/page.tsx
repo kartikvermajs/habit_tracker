@@ -1,16 +1,34 @@
+'use client'
+
+import { useActionState, useEffect } from 'react'
 import { signup } from '@/actions/auth'
-import { Button } from '@/components/ui/button'
+import { SubmitButton } from '@/components/ui/submit-button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
+import { toast } from 'sonner'
 
 export default function SignupPage() {
+  const [state, formAction] = useActionState(signup as any, null as any)
+
+  useEffect(() => {
+    if (state?.error) {
+      toast.error(state.error)
+    }
+  }, [state])
+
   return (
     <div className="flex flex-1 flex-col justify-center items-center p-4">
       <div className="w-full max-w-md p-8 rounded-3xl shadow-neo bg-background flex flex-col gap-6">
         <h1 className="text-2xl font-semibold text-center text-foreground">
           Create an Account
         </h1>
-        <form action={signup} className="flex flex-col gap-4">
+        <form action={formAction} className="flex flex-col gap-4">
+          <Input 
+            name="fullName" 
+            type="text" 
+            placeholder="Full Name" 
+            required 
+          />
           <Input 
             name="email" 
             type="email" 
@@ -29,9 +47,9 @@ export default function SignupPage() {
             placeholder="Confirm Password" 
             required 
           />
-          <Button type="submit" size="lg" className="mt-2">
+          <SubmitButton size="lg" className="mt-2">
             Sign Up
-          </Button>
+          </SubmitButton>
         </form>
         <div className="text-center text-sm">
           Already have an account?{' '}

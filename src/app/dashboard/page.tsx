@@ -13,6 +13,17 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
+  let greeting = "Welcome back"
+
+  if (userId === "admin_virtual_id") {
+    greeting = "Welcome Admin"
+  } else {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (user?.fullName) {
+      greeting = `Welcome ${user.fullName}`
+    }
+  }
+
   const habits = await prisma.habit.findMany({
     where: { userId },
     include: {
@@ -30,7 +41,7 @@ export default async function DashboardPage() {
   return (
     <div className="flex flex-col min-h-screen p-6 max-w-4xl mx-auto w-full gap-8">
       <header className="flex justify-between items-center py-4">
-        <h1 className="text-3xl font-bold text-foreground">Habits</h1>
+        <h1 className="text-3xl font-bold text-foreground">{greeting}</h1>
         <form action={logout}>
           <Button variant="ghost" type="submit">
             Log out
@@ -52,7 +63,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {habits.map((habit) => {
+        {habits.map((habit: any) => {
           const isCompletedToday = habit.logs[0]?.completed ?? false
 
           return (

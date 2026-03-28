@@ -12,13 +12,14 @@ const loginSchema = z.object({
 })
 
 const signupSchema = loginSchema.extend({
+  fullName: z.string().min(1, { message: 'Full name is required' }),
   passwordConfirmation: z.string()
 }).refine((data) => data.password === data.passwordConfirmation, {
   message: "Passwords don't match",
   path: ["passwordConfirmation"],
 })
 
-export async function login(formData: FormData) {
+export async function login(prevState: any, formData: FormData) {
   const data = Object.fromEntries(formData)
   const parsed = loginSchema.safeParse(data)
 
@@ -27,6 +28,17 @@ export async function login(formData: FormData) {
   }
 
   const { email, password } = parsed.data
+
+  // Check against Admin Environment Variables
+  if (
+    process.env.ADMIN_EMAIL &&
+    process.env.ADMIN_PASSWORD &&
+    email === process.env.ADMIN_EMAIL &&
+    password === process.env.ADMIN_PASSWORD
+  ) {
+    await createSession('admin_virtual_id')
+    redirect('/dashboard')
+  }
 
   const user = await prisma.user.findUnique({ where: { email } })
 
@@ -44,7 +56,7 @@ export async function login(formData: FormData) {
   redirect('/dashboard')
 }
 
-export async function signup(formData: FormData) {
+export async function signup(prevState: any, formData: FormData) {
   const data = Object.fromEntries(formData)
   const parsed = signupSchema.safeParse(data)
 
@@ -52,23 +64,29 @@ export async function signup(formData: FormData) {
     return { error: parsed.error.issues[0].message }
   }
 
-  const { email, password } = parsed.data
+  const { email, fullName, password } = parsed.data
 
   const existingUser = await prisma.user.findUnique({ where: { email } })
   if (existingUser) {
-    return { error: 'User already exists' }
+    return { error: 'An account with this email already exists' }
   }
 
   const passwordHash = await hash(password, 10)
 
-  const user = await prisma.user.create({
-    data: {
-      email,
-      passwordHash,
-    },
-  })
+  try {
+    const user = await prisma.user.create({
+      data: {
+        email,
+        fullName,
+        passwordHash,
+      },
+    })
+    await createSession(user.id)
+  } catch (err: any) {
+    // Graceful error fallback
+    return { error: 'Failed to create user. Email may be taken.' }
+  }
 
-  await createSession(user.id)
   redirect('/dashboard')
 }
 
@@ -76,3 +94,4 @@ export async function logout() {
   await deleteSession()
   redirect('/login')
 }
+
