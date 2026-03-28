@@ -6,6 +6,7 @@ import { SubmitButton } from '@/components/ui/submit-button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import Image from 'next/image'
 
 export default function SignupPage() {
   const [state, formAction] = useActionState(signup as any, null as any)
@@ -19,7 +20,16 @@ export default function SignupPage() {
   return (
     <div className="flex flex-1 flex-col justify-center items-center p-4">
       <div className="w-full max-w-md p-8 rounded-3xl shadow-neo bg-background flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold text-center text-foreground">
+        <div className="flex justify-center">
+          <Image
+            src="/logo.png"
+            alt="App Logo"
+            width={512}
+            height={512}
+            className="w-20 h-20 sm:w-24 sm:h-24 object-contain drop-shadow-sm"
+          />
+        </div>
+        <h1 className="text-2xl font-semibold text-center text-foreground mt-[-1rem]">
           Create an Account
         </h1>
         <form action={formAction} className="flex flex-col gap-4">
