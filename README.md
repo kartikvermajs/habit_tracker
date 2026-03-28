@@ -1,4 +1,4 @@
-# Neomorphic Habit Tracker
+# Habit Tracker
 
 A modern habit tracking application built with a sleek neomorphic design. Focus on consistency and organization while enjoying a beautiful, minimalist user interface.
 

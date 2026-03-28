@@ -22,7 +22,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Neomorphic Habit Tracker",
+  title: "Habit Tracker",
   description: "Track your habits beautifully.",
   manifest: "/manifest.json",
   appleWebApp: {

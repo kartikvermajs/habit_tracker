@@ -1,7 +1,7 @@
 {
-  "name": "Neomorphic Habit Tracker",
+  "name": "Habit Tracker",
   "short_name": "Habits",
-  "description": "A beautiful neomorphic habit tracker app",
+  "description": "A beautiful habit tracker app",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#e0e5ec",
