@@ -1,10 +1,17 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Bell, BellOff, Trash2, AlertTriangle, X } from 'lucide-react'
 import { logout } from '@/actions/auth'
 import { deleteAccount } from '@/actions/user'
+import { getHabits } from '@/actions/habit'
+import {
+  requestNotificationPermission,
+  registerSW,
+  scheduleHabitNotifications,
+  clearScheduledNotifications,
+} from '@/lib/notifications'
 import { toast } from 'sonner'
 
 export default function SettingsPage() {
@@ -13,17 +20,30 @@ export default function SettingsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  function handleNotificationToggle() {
+  // Prefetch dashboard for instant back navigation
+  useEffect(() => { router.prefetch('/dashboard') }, [router])
+
+  // Sync initial state from Notification.permission
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotificationsEnabled(Notification.permission === 'granted')
+    }
+  }, [])
+
+  async function handleNotificationToggle() {
     if (!notificationsEnabled) {
-      Notification.requestPermission().then(result => {
-        if (result === 'granted') {
-          setNotificationsEnabled(true)
-          toast.success('Notifications enabled!')
-        } else {
-          toast.error('Permission denied. Enable in browser settings.')
-        }
-      })
+      const granted = await requestNotificationPermission()
+      if (granted) {
+        await registerSW()
+        const habits = await getHabits().catch(() => [])
+        await scheduleHabitNotifications(habits)
+        setNotificationsEnabled(true)
+        toast.success('Notifications enabled! Reminders are scheduled.')
+      } else {
+        toast.error('Permission denied. Please enable notifications in your browser settings.')
+      }
     } else {
+      clearScheduledNotifications()
       setNotificationsEnabled(false)
       toast.info('Notifications disabled.')
     }
@@ -46,7 +66,7 @@ export default function SettingsPage() {
       <header className="flex items-center px-5 pt-12 pb-5 sticky top-0 bg-[#fafbfc]/90 backdrop-blur-md z-10">
         <button
           onClick={() => router.push('/dashboard')}
-          className="p-2 rounded-full bg-white shadow-[3px_3px_8px_rgba(0,0,0,0.07),-2px_-2px_6px_rgba(255,255,255,0.9)] active:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.08)] transition-all"
+          className="p-2 rounded-full bg-white shadow-[3px_3px_8px_rgba(0,0,0,0.07),-2px_-2px_6px_rgba(255,255,255,0.9)] active:scale-90 active:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.08)] transition-all duration-100"
         >
           <ArrowLeft className="w-5 h-5 text-[#1e293b]" />
         </button>

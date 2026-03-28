@@ -56,6 +56,37 @@ export async function createHabit(data: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// UPDATE HABIT
+// ─────────────────────────────────────────────────────────────────────────────
+export async function updateHabit(habitId: string, data: {
+  title: string
+  description?: string
+  color?: string
+  frequency: string[]
+  reminders: string[]
+  startDate: string
+  endDate?: string
+}) {
+  const { isAuth, userId } = await verifySession()
+  if (!isAuth || !userId) throw new Error('Not authenticated')
+
+  await prisma.habit.update({
+    where: { id: habitId, userId },
+    data: {
+      title: data.title,
+      description: data.description ?? '',
+      color: data.color ?? '#8b5cf6',
+      frequency: data.frequency,
+      reminders: data.reminders,
+      startDate: new Date(data.startDate),
+      endDate: data.endDate ? new Date(data.endDate) : null,
+    },
+  })
+
+  revalidatePath('/dashboard')
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // TOGGLE HABIT LOG  (for a specific date)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function toggleHabitLog(habitId: string, dateStr: string) {

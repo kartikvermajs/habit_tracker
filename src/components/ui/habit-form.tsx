@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createHabit } from '@/actions/habit'
+import { createHabit, updateHabit } from '@/actions/habit'
 import { toast } from 'sonner'
 import { ArrowLeft, X, Plus, Clock } from 'lucide-react'
 
@@ -26,6 +26,11 @@ export interface HabitFormDefaults {
   description?: string
   color?: string
   reminders?: string[]
+  // Edit-mode extras
+  editHabitId?: string
+  frequency?: string[]
+  startDate?: string
+  endDate?: string | null
 }
 
 interface HabitFormProps {
@@ -36,24 +41,46 @@ interface HabitFormProps {
 export function HabitForm({ defaults = {}, onClose }: HabitFormProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const isEditing = !!defaults.editHabitId
+
+  // Prefetch dashboard so back navigation is instant
+  useEffect(() => { router.prefetch('/dashboard') }, [router])
 
   const [title, setTitle] = useState(defaults.title ?? '')
   const [description, setDescription] = useState(defaults.description ?? '')
   const [color, setColor] = useState(defaults.color ?? '#8b5cf6')
-  const [everydayMode, setEverydayMode] = useState(true)
-  const [selectedDays, setSelectedDays] = useState<string[]>([])
+  const initialFreq = defaults.frequency ?? []
+  const [everydayMode, setEverydayMode] = useState(
+    initialFreq.length === 0 || initialFreq.includes('Everyday')
+  )
+  const [selectedDays, setSelectedDays] = useState<string[]>(
+    initialFreq.filter(f => f !== 'Everyday')
+  )
   const [reminders, setReminders] = useState<string[]>(defaults.reminders ?? [])
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0])
-  const [neverEnd, setNeverEnd] = useState(true)
-  const [endDate, setEndDate] = useState('')
+  const [startDate, setStartDate] = useState(
+    defaults.startDate ?? new Date().toISOString().split('T')[0]
+  )
+  const [neverEnd, setNeverEnd] = useState(!defaults.endDate)
+  const [endDate, setEndDate] = useState(
+    defaults.endDate ? new Date(defaults.endDate).toISOString().split('T')[0] : ''
+  )
 
   // ── Mutation ────────────────────────────────────────────────────────────────
   const mutation = useMutation({
-    mutationFn: createHabit,
+    mutationFn: (payload: Parameters<typeof createHabit>[0]) =>
+      isEditing
+        ? updateHabit(defaults.editHabitId!, payload)
+        : createHabit(payload),
     onSuccess: () => {
+      // Navigate FIRST for zero perceived latency
+      if (onClose) {
+        onClose()
+      } else {
+        router.push('/dashboard')
+      }
+      // Invalidate + toast as background tasks (non-blocking)
+      toast.success(isEditing ? 'Habit updated!' : 'Habit created!')
       queryClient.invalidateQueries({ queryKey: ['habits'] })
-      toast.success('Habit created!')
-      router.push('/dashboard')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -102,12 +129,12 @@ export function HabitForm({ defaults = {}, onClose }: HabitFormProps) {
       <header className="flex items-center px-5 pt-12 pb-5 sticky top-0 bg-[#fafbfc]/90 backdrop-blur-md z-10">
         <button
           onClick={handleBack}
-          className="p-2 rounded-full bg-white shadow-[3px_3px_8px_rgba(0,0,0,0.07),-2px_-2px_6px_rgba(255,255,255,0.9)] active:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.08)] transition-all"
+          className="p-2 rounded-full bg-white shadow-[3px_3px_8px_rgba(0,0,0,0.07),-2px_-2px_6px_rgba(255,255,255,0.9)] active:scale-90 active:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.08)] transition-all duration-100"
         >
           <ArrowLeft className="w-5 h-5 text-[#1e293b]" />
         </button>
         <h1 className="flex-1 text-center text-lg font-bold text-[#0f172a] -ml-9">
-          Create Habit
+          {isEditing ? 'Edit Habit' : 'Create Habit'}
         </h1>
       </header>
 
