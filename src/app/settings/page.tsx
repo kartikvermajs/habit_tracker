@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { ArrowLeft, Bell, BellOff, Trash2, AlertTriangle, X } from 'lucide-react'
 import { logout } from '@/actions/auth'
 import { deleteAccount } from '@/actions/user'
@@ -64,13 +65,13 @@ export default function SettingsPage() {
     <div className="flex flex-col min-h-screen bg-[#fafbfc]">
       {/* Header */}
       <header className="flex items-center px-5 pt-12 pb-5 sticky top-0 bg-[#fafbfc]/90 backdrop-blur-md z-10">
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="p-2 rounded-full bg-white shadow-[3px_3px_8px_rgba(0,0,0,0.07),-2px_-2px_6px_rgba(255,255,255,0.9)] active:scale-90 active:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.08)] transition-all duration-100"
+        <Link
+          href="/dashboard"
+          className="cursor-pointer p-2 rounded-full bg-white shadow-[3px_3px_8px_rgba(0,0,0,0.07),-2px_-2px_6px_rgba(255,255,255,0.9)] active:scale-90 active:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.08)] transition-all duration-100"
         >
           <ArrowLeft className="w-5 h-5 text-[#1e293b]" />
-        </button>
-        <h1 className="flex-1 text-center text-lg font-bold text-[#0f172a] -ml-9">
+        </Link>
+        <h1 className="flex-1 text-center text-lg font-bold text-[#0f172a] -ml-9 pointer-events-none">
           Settings
         </h1>
       </header>

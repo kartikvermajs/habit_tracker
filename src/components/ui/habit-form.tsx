@@ -136,7 +136,7 @@ export function HabitForm({ defaults = {}, onClose }: HabitFormProps) {
         >
           <ArrowLeft className="w-5 h-5 text-[#1e293b]" />
         </button>
-        <h1 className="flex-1 text-center text-lg font-bold text-[#0f172a] -ml-9">
+        <h1 className="flex-1 text-center text-lg font-bold text-[#0f172a] -ml-9 pointer-events-none">
           {isEditing ? 'Edit Habit' : 'Create Habit'}
         </h1>
       </header>
