@@ -13,11 +13,13 @@ export default async function proxy(req: NextRequest) {
 
   const { isAuth } = await verifySession()
 
+  // Unauthenticated user hitting a protected route → login
   if (isProtectedRoute && !isAuth) {
     return NextResponse.redirect(new URL('/login', req.nextUrl))
   }
 
-  if (isPublicRoute && isAuth && path !== '/') {
+  // Authenticated user hitting any public/auth route → dashboard
+  if (isPublicRoute && isAuth) {
     return NextResponse.redirect(new URL('/dashboard', req.nextUrl))
   }
 
@@ -25,5 +27,5 @@ export default async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|.*\\.png$).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|.*\\.png$|sw\\.js|manifest\\.json).*)'],
 }

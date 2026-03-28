@@ -67,10 +67,13 @@ export function HabitForm({ defaults = {}, onClose }: HabitFormProps) {
 
   // ── Mutation ────────────────────────────────────────────────────────────────
   const mutation = useMutation({
-    mutationFn: (payload: Parameters<typeof createHabit>[0]) =>
-      isEditing
-        ? updateHabit(defaults.editHabitId!, payload)
-        : createHabit(payload),
+    mutationFn: async (payload: Parameters<typeof createHabit>[0]): Promise<void> => {
+      if (isEditing) {
+        await updateHabit(defaults.editHabitId!, payload)
+      } else {
+        await createHabit(payload)
+      }
+    },
     onSuccess: () => {
       // Navigate FIRST for zero perceived latency
       if (onClose) {

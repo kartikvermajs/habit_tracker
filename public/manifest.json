@@ -2,18 +2,18 @@
   "name": "Habit Tracker",
   "short_name": "Habits",
   "description": "A beautiful habit tracker app",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#e0e5ec",
-  "theme_color": "#e0e5ec",
+  "background_color": "#fafbfc",
+  "theme_color": "#6d28d9",
   "icons": [
     {
-      "src": "/icon-192x192.png",
+      "src": "/logo.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icon-512x512.png",
+      "src": "/logo.png",
       "sizes": "512x512",
       "type": "image/png"
     }
