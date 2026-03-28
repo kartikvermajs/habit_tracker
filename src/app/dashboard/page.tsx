@@ -7,9 +7,10 @@ import { Settings, CalendarDays, ChevronRight, ListTodo, Plus, Check, Pencil, Tr
 import { getHabits, toggleHabitLog, deleteHabit } from '@/actions/habit'
 import { HabitForm } from '@/components/ui/habit-form'
 import {
-  requestNotificationPermission,
   scheduleHabitNotifications,
-  registerSW,
+  setInAppToastCallback,
+  clearInAppToastCallback,
+  clearScheduledNotifications,
 } from '@/lib/notifications'
 import { toast } from 'sonner'
 import type { HabitFormDefaults } from '@/components/ui/habit-form'
@@ -91,10 +92,22 @@ export default function DashboardPage() {
     placeholderData: keepPreviousData,
   })
 
-  // ── Schedule notifications when habits load ───────────────────────────────
+  // ── Notification system: in-app toast + scheduled push ────────────────────
+  useEffect(() => {
+    // Register the in-app toast callback so foreground reminders appear as toasts
+    setInAppToastCallback((title, body) => {
+      toast(title, { description: body, duration: 8000 })
+    })
+    return () => {
+      clearInAppToastCallback()
+      clearScheduledNotifications()
+    }
+  }, [])
+
   useEffect(() => {
     if (habits.length === 0) return
-    if (typeof window === 'undefined' || Notification.permission !== 'granted') return
+    if (typeof window === 'undefined') return
+    if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') return
     scheduleHabitNotifications(habits).catch(() => { })
   }, [habits])
 

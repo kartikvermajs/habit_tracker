@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifySession } from '@/lib/session'
+import { decrypt } from '@/lib/session'
 
 const protectedRoutes = ['/dashboard', '/settings']
 const publicRoutes = ['/login', '/signup', '/']
@@ -11,7 +11,10 @@ export default async function proxy(req: NextRequest) {
   const isProtectedRoute = protectedRoutes.some((route) => path.startsWith(route))
   const isPublicRoute = publicRoutes.includes(path)
 
-  const { isAuth } = await verifySession()
+  // Read cookie directly from the request (NOT from next/headers cookies())
+  const cookie = req.cookies.get('session')?.value
+  const session = await decrypt(cookie)
+  const isAuth = !!session?.userId
 
   // Unauthenticated user hitting a protected route → login
   if (isProtectedRoute && !isAuth) {
