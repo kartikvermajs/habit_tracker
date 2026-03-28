@@ -24,7 +24,11 @@ model Habit {
   id          String     @id @default(cuid())
   title       String
   description String?
-  frequency   String     // e.g., "daily", "weekly", etc.
+  color       String?
+  frequency   String[]   
+  reminders   String[]   
+  startDate   DateTime   @default(now())
+  endDate     DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   userId      String

@@ -4,82 +4,92 @@ import { prisma } from '@/lib/prisma'
 import { verifySession } from '@/lib/session'
 import { revalidatePath } from 'next/cache'
 
-export async function createHabit(formData: FormData) {
+// ─────────────────────────────────────────────────────────────────────────────
+// GET HABITS  (used by TanStack Query via a wrapper)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getHabits() {
   const { isAuth, userId } = await verifySession()
+  if (!isAuth || !userId) throw new Error('Not authenticated')
 
-  if (!isAuth || !userId) {
-    throw new Error('Not authenticated')
+  const habits = await prisma.habit.findMany({
+    where: { userId },
+    include: { logs: true },
+    orderBy: { createdAt: 'desc' },
+  })
+  return habits
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CREATE HABIT
+// ─────────────────────────────────────────────────────────────────────────────
+export async function createHabit(data: {
+  title: string
+  description?: string
+  color?: string
+  frequency: string[]   // ["Everyday"] | ["Mon","Wed","Fri"] etc.
+  reminders: string[]   // ["08:00","14:00"] etc.
+  startDate: string     // ISO date string
+  endDate?: string      // ISO date string or undefined
+}) {
+  const { isAuth, userId } = await verifySession()
+  if (!isAuth || !userId) throw new Error('Not authenticated')
+
+  if (!data.title || !data.frequency.length) {
+    throw new Error('Name and frequency are required')
   }
 
-  const title = formData.get('title') as string
-  const frequency = formData.get('frequency') as string
-
-  if (!title || !frequency) {
-    throw new Error('Invalid fields')
-  }
-
-  await prisma.habit.create({
+  const habit = await prisma.habit.create({
     data: {
-      title,
-      frequency,
+      title: data.title,
+      description: data.description ?? '',
+      color: data.color ?? '#8b5cf6',
+      frequency: data.frequency,
+      reminders: data.reminders,
+      startDate: new Date(data.startDate),
+      endDate: data.endDate ? new Date(data.endDate) : null,
       userId,
     },
   })
 
   revalidatePath('/dashboard')
+  return habit
 }
 
-export async function toggleHabitLog(habitId: string) {
+// ─────────────────────────────────────────────────────────────────────────────
+// TOGGLE HABIT LOG  (for a specific date)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function toggleHabitLog(habitId: string, dateStr: string) {
   const { isAuth, userId } = await verifySession()
+  if (!isAuth || !userId) throw new Error('Not authenticated')
 
-  if (!isAuth || !userId) {
-    throw new Error('Not authenticated')
-  }
+  const date = new Date(dateStr)
+  date.setHours(0, 0, 0, 0)
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  const existingLog = await prisma.habitLog.findUnique({
-    where: {
-      habitId_date: {
-        habitId,
-        date: today,
-      },
-    },
+  const existing = await prisma.habitLog.findUnique({
+    where: { habitId_date: { habitId, date } },
   })
 
-  if (existingLog) {
+  if (existing) {
     await prisma.habitLog.update({
-      where: { id: existingLog.id },
-      data: { completed: !existingLog.completed },
+      where: { id: existing.id },
+      data: { completed: !existing.completed },
     })
   } else {
     await prisma.habitLog.create({
-      data: {
-        habitId,
-        userId,
-        date: today,
-        completed: true,
-      },
+      data: { habitId, userId, date, completed: true },
     })
   }
 
   revalidatePath('/dashboard')
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DELETE HABIT
+// ─────────────────────────────────────────────────────────────────────────────
 export async function deleteHabit(habitId: string) {
   const { isAuth, userId } = await verifySession()
+  if (!isAuth || !userId) throw new Error('Not authenticated')
 
-  if (!isAuth || !userId) {
-    throw new Error('Not authenticated')
-  }
-
-  await prisma.habit.delete({
-    where: { 
-      id: habitId,
-      userId
-    },
-  })
-
+  await prisma.habit.delete({ where: { id: habitId, userId } })
   revalidatePath('/dashboard')
 }
