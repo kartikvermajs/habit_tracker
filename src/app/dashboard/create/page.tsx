@@ -88,7 +88,7 @@ export default function CreateHabitPage() {
       {/* Header */}
       <header className="flex items-center px-5 pt-12 pb-5 sticky top-0 bg-[#fafbfc]/90 backdrop-blur-md z-10">
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push('/dashboard')}
           className="p-2 rounded-full bg-white shadow-[3px_3px_8px_rgba(0,0,0,0.07),-2px_-2px_6px_rgba(255,255,255,0.9)] active:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.08)] transition-all"
         >
           <ArrowLeft className="w-5 h-5 text-[#1e293b]" />

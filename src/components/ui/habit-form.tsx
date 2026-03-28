@@ -94,7 +94,7 @@ export function HabitForm({ defaults = {}, onClose }: HabitFormProps) {
     })
   }
 
-  const handleBack = () => { if (onClose) onClose(); else router.back() }
+  const handleBack = () => { if (onClose) onClose(); else router.push('/dashboard') }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#fafbfc]">
