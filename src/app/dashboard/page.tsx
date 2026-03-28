@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { Settings, CalendarDays, ChevronRight, ListTodo, Plus, User, Check, Pencil, Trash2 } from 'lucide-react'
+import { Settings, CalendarDays, ChevronRight, ListTodo, Plus, Check, Pencil, Trash2, Home } from 'lucide-react'
 import { getHabits, toggleHabitLog, deleteHabit } from '@/actions/habit'
 import { HabitForm } from '@/components/ui/habit-form'
 import {
@@ -95,7 +95,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (habits.length === 0) return
     if (typeof window === 'undefined' || Notification.permission !== 'granted') return
-    scheduleHabitNotifications(habits).catch(() => {})
+    scheduleHabitNotifications(habits).catch(() => { })
   }, [habits])
 
   // ── Toggle log ────────────────────────────────────────────────────────────
@@ -197,11 +197,10 @@ export default function DashboardPage() {
                 <div key={toDateStr(date)} className="flex flex-col items-center gap-1.5 shrink-0 snap-center">
                   <button
                     onClick={() => setSelectedDate(date)}
-                    className={`flex flex-col items-center justify-center w-[58px] h-[78px] rounded-[20px] transition-all duration-300 ${
-                      isActive
-                        ? 'bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] text-white shadow-[0_8px_16px_rgba(109,40,217,0.3)] scale-105'
-                        : 'bg-white text-slate-500 shadow-[3px_3px_10px_rgba(0,0,0,0.04),-3px_-3px_8px_rgba(255,255,255,0.9)] hover:scale-[1.02]'
-                    }`}
+                    className={`flex flex-col items-center justify-center w-[58px] h-[78px] rounded-[20px] transition-all duration-300 ${isActive
+                      ? 'bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] text-white shadow-[0_8px_16px_rgba(109,40,217,0.3)] scale-105'
+                      : 'bg-white text-slate-500 shadow-[3px_3px_10px_rgba(0,0,0,0.04),-3px_-3px_8px_rgba(255,255,255,0.9)] hover:scale-[1.02]'
+                      }`}
                   >
                     <span className={`text-[10px] font-bold tracking-widest mb-1 ${isActive ? 'text-white/80' : 'text-slate-400'}`}>
                       {DAY_LABELS_3[dayIdx]}
@@ -397,12 +396,12 @@ export default function DashboardPage() {
             onClick={() => setActiveTab('today')}
             className="flex flex-col items-center gap-1.5 w-16"
           >
-            <User
+            <Home
               className={`w-6 h-6 transition-colors ${activeTab === 'today' ? 'text-[#6d28d9]' : 'text-slate-400'}`}
               strokeWidth={2.5}
             />
             <span className={`text-[10px] font-bold transition-colors ${activeTab === 'today' ? 'text-[#6d28d9]' : 'text-slate-400'}`}>
-              Today
+              Home
             </span>
           </button>
         </div>
