@@ -8,9 +8,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-background text-foreground shadow-neo hover:shadow-neo-sm",
-        pressed: "bg-background text-foreground shadow-neo-inset",
-        ghost: "hover:bg-black/5",
+        default: "bg-background text-primary shadow-neo hover:shadow-neo-sm font-semibold",
+        pressed: "bg-background text-primary shadow-neo-inset font-semibold",
+        ghost: "hover:bg-black/5 text-foreground hover:text-primary",
+        primary: "bg-gradient-to-br from-[#ff755d] to-[#ff4125] text-white shadow-neo hover:opacity-90 font-semibold border-none",
       },
       size: {
         default: "h-11 px-6 py-2",

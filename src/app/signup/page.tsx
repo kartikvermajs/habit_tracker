@@ -63,7 +63,7 @@ export default function SignupPage() {
         </form>
         <div className="text-center text-sm">
           Already have an account?{' '}
-          <Link href="/login" className="font-semibold underline">
+          <Link href="/login" className="font-semibold text-primary hover:opacity-80 underline">
             Log in
           </Link>
         </div>
