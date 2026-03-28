@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { Settings, CalendarDays, ChevronRight, ListTodo, Plus, User, Check, Pencil, Trash2 } from 'lucide-react'
 import { getHabits, toggleHabitLog, deleteHabit } from '@/actions/habit'
@@ -87,8 +87,8 @@ export default function DashboardPage() {
   const { data: habits = [], isLoading } = useQuery({
     queryKey: ['habits'],
     queryFn: getHabits,
-    // placeholderData: keepPreviousData → no flicker when switching tabs
-    placeholderData: (prev: HabitWithLogs[] | undefined) => prev,
+    // keepPreviousData → no flicker when switching tabs
+    placeholderData: keepPreviousData,
   })
 
   // ── Schedule notifications when habits load ───────────────────────────────
