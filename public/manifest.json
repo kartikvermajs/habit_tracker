@@ -1,0 +1,21 @@
+{
+  "name": "Neomorphic Habit Tracker",
+  "short_name": "Habits",
+  "description": "A beautiful neomorphic habit tracker app",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#e0e5ec",
+  "theme_color": "#e0e5ec",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

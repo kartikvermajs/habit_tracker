@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  role         String     @default("USER")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  habits       Habit[]
+  habitLogs    HabitLog[]
+}
+
+model Habit {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  frequency   String     // e.g., "daily", "weekly", etc.
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs        HabitLog[]
+}
+
+model HabitLog {
+  id        String   @id @default(cuid())
+  date      DateTime
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  habitId   String
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+}
